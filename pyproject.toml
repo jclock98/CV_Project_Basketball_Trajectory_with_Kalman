@@ -1,0 +1,17 @@
+[tool.poetry]
+name = "project"
+version = "0.1.0"
+description = ""
+authors = ["Jclock <jacopo.clocchiatti@gmail.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = ">=3.9,<=3.11"
+ultralytics = "^8.0.25"
+opencv-contrib-python = "^4.7.0.68"
+opencv-python = "^4.7.0.68"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
