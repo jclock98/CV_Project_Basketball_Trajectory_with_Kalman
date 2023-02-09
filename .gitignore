@@ -1,0 +1,6 @@
+
+data/.DS_Store
+*.pyc
+utils/.DS_Store
+.DS_Store
+test.py

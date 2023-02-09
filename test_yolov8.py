@@ -10,7 +10,7 @@ THRESHOLD = 60
 
 
 def init_tracker():
-    return YOLO("utils/best.pt")
+    return YOLO("utils/best_s.pt")
 
 
 def init_kalman():
@@ -127,7 +127,6 @@ def track_trajectory(input_file):
             xo = int(roiBox[0] + roiBox[2] / 2)
             yo = int(roiBox[1] + roiBox[3] / 2)
             error = (roiBox[3])
-            print(error)
 
             print("Predicting trajectory...")
             if yo < error or bgs.sum() < 50:
