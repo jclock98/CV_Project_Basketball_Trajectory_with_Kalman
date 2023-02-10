@@ -1,6 +1,7 @@
 
 data/.DS_Store
 *.pyc
-utils/.DS_Store
+models/.DS_Store
 .DS_Store
 test.py
+*_tracked.mp4
