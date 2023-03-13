@@ -8,10 +8,10 @@ from kalmanfilter import KalmanFilter
 from utils import *
 
 MAX_FRAMES = 1000000
-CUT_FACTOR = 7
+CUT_FACTOR = 8
 REDU = 8
 THRESHOLD = 60
-FRAMES_INTERVAL = 24
+FRAMES_INTERVAL = 30
 
 
 def init_tracker(model_type: str) -> YOLO:
@@ -120,7 +120,7 @@ def track_trajectory(input_file: str, type_of_model: str, camshift: bool, write:
             results = model(frame)
             if show:
                 cv2.imshow('Frame', frame)
-
+            frames.append(frame)
             if results[0].boxes.shape[0] == 0:
                 continue
             else:
@@ -224,26 +224,26 @@ def track_trajectory(input_file: str, type_of_model: str, camshift: bool, write:
                                int(uncertaintyP),
                                (0, 0, 255))
 
-            if len(listCenterY) > 4:
-                check_rebound_y_towards_left = ((listCenterY[-4] > listCenterY[-3]) and
+            if len(listCenterY) > 3:
+                check_rebound_y_towards_left = (  # (listCenterY[-4] > listCenterY[-3]) and
                                                 (listCenterY[-3] > listCenterY[-2]) and
                                                 (listCenterY[-2] < listCenterY[-1]))
-                check_rebound_x_towards_left = ((listCenterX[-4] > listCenterX[-3]) and
+                check_rebound_x_towards_left = (  # (listCenterX[-4] > listCenterX[-3]) and
                                                 (listCenterX[-3] > listCenterX[-2]) and
                                                 (listCenterX[-2] < listCenterX[-1]))
 
-                check_rebound_y_towards_right = ((listCenterY[-4] < listCenterY[-3]) and
+                check_rebound_y_towards_right = (  # (listCenterY[-4] < listCenterY[-3]) and
                                                  (listCenterY[-3] < listCenterY[-2]) and
                                                  (listCenterY[-2] > listCenterY[-1]))
-                check_rebound_x_towards_right = ((listCenterX[-4] < listCenterX[-3]) and
+                check_rebound_x_towards_right = (  # (listCenterX[-4] < listCenterX[-3]) and
                                                  (listCenterX[-3] < listCenterX[-2]) and
                                                  (listCenterX[-2] > listCenterX[-1]))
-
+                print(listCenterX[-3:], listCenterY[-3:])
                 # check for rebound in either direction
                 if (check_rebound_x_towards_right or check_rebound_x_towards_left) and\
                         (check_rebound_y_towards_right or check_rebound_y_towards_left):
                     clean = True
-
+            print(clean)
             if clean:
                 print("Reset")
                 listCenterY = []
@@ -253,22 +253,23 @@ def track_trajectory(input_file: str, type_of_model: str, camshift: bool, write:
                 found = False
                 mu = np.array([0, 0, 0, 0])
                 P = np.diag([10, 10, 10, 10]) ** 2
-
-            if frame_num % FRAMES_INTERVAL == 0:
-                found = False
+            if camshift:
+                if frame_num % FRAMES_INTERVAL == 0:
+                    found = False
 
         if show:
             cv2.imshow('Frame', frame)
         frames.append(frame)
 
     if write:
+        print("Writing video...")
         name = input_file[:-4] + "_tracked" + '.mp4'
         fourcc = cv2.VideoWriter_fourcc(*'mp4v')
-        out = cv2.VideoWriter(name, fourcc, 20.0, (frame_width, frame_height))
+        out = cv2.VideoWriter(name, fourcc, FRAMES_INTERVAL//2, (frame_width, frame_height))
         for frame in frames:
             out.write(frame)
+        out.release()
     print("Done")
-    out.release()
     cap.release()
     cv2.destroyAllWindows()
 
@@ -276,15 +277,15 @@ def track_trajectory(input_file: str, type_of_model: str, camshift: bool, write:
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Script for basketball shot trajectory prediction "
                                                  "using YOLO and Kalman Filter")
-    parser.add_argument("--input", type=str, default="04.mp4",
+    parser.add_argument("--input", type=str, default="01.mp4",
                         help="Name of the input video (must be in data folder)")
-    parser.add_argument("--model", type=str, default="medium",
+    parser.add_argument("--model", type=str, default="small",
                         help="Type of model (nano, small, medium)")
     parser.add_argument("--camshift", default=False, action="store_true",
                         help="Whether to track the ball with camshift or YOLO")
     parser.add_argument("--save-result", default=True, action="store_true",
                         help="Save the resulting video with the predicted trajectory")
-    parser.add_argument("--show", default=False, action="store_true",
+    parser.add_argument("--show", default=True, action="store_true",
                         help="Show procedure step-by-step")
     args = parser.parse_args()
 
