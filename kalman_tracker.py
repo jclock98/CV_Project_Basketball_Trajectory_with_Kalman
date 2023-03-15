@@ -71,8 +71,7 @@ class KalmanTracker:
 
 def track_trajectory(input_file: str, type_of_model: str, camshift: bool, write: bool, show_res: bool):
     clean = False
-    FPS = 90
-    tracker = KalmanTracker(type_of_model, device="cpu", fps=FPS)
+    tracker = KalmanTracker(type_of_model, device="cpu")
 
     termination = (cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT, 10, 1)
 
