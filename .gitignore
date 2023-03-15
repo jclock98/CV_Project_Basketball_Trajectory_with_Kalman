@@ -5,3 +5,4 @@ models/.DS_Store
 .DS_Store
 test.py
 *_tracked.mp4
+*_tracked*.mp4
