@@ -68,8 +68,8 @@ class KalmanTracker:
         :param model_type: dimension of the yolo model that was used
         """
         print("Writing video...")
-        camshift_label = "_camshift_" if camshift else ""
-        name = input_file[:-4] + "_tracked" + f"_{model_type}_" + camshift_label + '.mp4'
+        camshift_label = "_camshift" if camshift else ""
+        name = input_file[:-4] + "_tracked" + f"_{model_type}" + camshift_label + '.mp4'
         fourcc = cv2.VideoWriter_fourcc(*'mp4v')
         out = cv2.VideoWriter(name, fourcc, FRAMES_INTERVAL // 2, (frame_width, frame_height))
         for frame in self.frames:
@@ -284,9 +284,9 @@ if __name__ == "__main__":
                         help="Type of model (nano, small, medium)")
     parser.add_argument("--camshift", default=False, action="store_true",
                         help="Whether to track the ball with camshift or YOLO")
-    parser.add_argument("--save-result", default=True, action="store_true",
+    parser.add_argument("--save-result", default=False, action="store_true",
                         help="Save the resulting video with the predicted trajectory")
-    parser.add_argument("--show", default=True, action="store_true",
+    parser.add_argument("--show", default=False, action="store_true",
                         help="Show procedure step-by-step")
     args = parser.parse_args()
 
