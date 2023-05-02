@@ -2,7 +2,7 @@ import argparse
 
 from ultralytics import YOLO
 
-from const import REDU, FRAMES_INTERVAL, THRESHOLD, CONF_THRESHOLD, FPS
+from const import FRAMES_INTERVAL, THRESHOLD, CONF_THRESHOLD, FPS
 from kalmanfilter import KalmanFilter
 from utils import *
 
@@ -58,7 +58,15 @@ class KalmanTracker:
         self.frames = []
         self.found = False
 
-    def write_video(self, input_file: str, frame_width: int, frame_height: int, camshift: bool, model_type: str):
+    def write_video(self, input_file: str, frame_width: int, frame_height: int, camshift: bool, model_type: str) -> ():
+        """
+        Function used to save the video with the prediction
+        :param input_file: name of the original video
+        :param frame_width:
+        :param frame_height:
+        :param camshift: if camshift was used
+        :param model_type: dimension of the yolo model that was used
+        """
         print("Writing video...")
         camshift_label = "_camshift_" if camshift else ""
         name = input_file[:-4] + "_tracked" + f"_{model_type}_" + camshift_label + '.mp4'
@@ -69,7 +77,15 @@ class KalmanTracker:
         out.release()
 
 
-def track_trajectory(input_file: str, type_of_model: str, camshift: bool, write: bool, show_res: bool):
+def track_trajectory(input_file: str, type_of_model: str, camshift: bool, write: bool, show_res: bool) -> ():
+    """
+    Track trajectory for input file
+    :param input_file: video to do the prediction on
+    :param type_of_model: dimension of yolo model
+    :param camshift: whether to use camshift to track, after detection
+    :param write: whether to save the result video with prediction
+    :param show_res: whether to have the real time feed of the prediction
+    """
     clean = False
     tracker = KalmanTracker(type_of_model, device="cpu")
 
@@ -156,20 +172,20 @@ def track_trajectory(input_file: str, type_of_model: str, camshift: bool, write:
                 # print selection box
                 cv2.rectangle(frame, (x_top_l, y_top_l), (x_bot_r, y_bot_r), (0, 255, 0), 2)
 
-            xo = int(selection_box[0] + selection_box[2] / 2)
-            yo = int(selection_box[1] + selection_box[3] / 2)
+            x_o = int(selection_box[0] + selection_box[2] / 2)
+            y_o = int(selection_box[1] + selection_box[3] / 2)
 
             print("Predicting trajectory...")
             # no ball/movement detected
             # i.e. no white in the difference between frames, low confidence on detection or box under error threshold
-            if (camshift and bgs.sum() < 25) or conf < CONF_THRESHOLD or yo < error:
-                predicted, tracker.mu, _ = kf.predict(int(xo), int(yo))
+            if (camshift and bgs.sum() < 25) or conf < CONF_THRESHOLD or y_o < error:
+                predicted, tracker.mu, _ = kf.predict(int(x_o), int(y_o))
                 tracker.mu, tracker.P = kf.kal(tracker.mu, tracker.P, tracker.B, tracker.u, z=None)
             else:
-                predicted, tracker.mu, _ = kf.predict(int(xo), int(yo))
-                tracker.mu, tracker.P = kf.kal(tracker.mu, tracker.P, tracker.B, tracker.u, z=np.array([xo, yo]))
-                tracker.list_centre_x.append(xo)
-                tracker.list_centre_y.append(yo)
+                predicted, tracker.mu, _ = kf.predict(int(x_o), int(y_o))
+                tracker.mu, tracker.P = kf.kal(tracker.mu, tracker.P, tracker.B, tracker.u, z=np.array([x_o, y_o]))
+                tracker.list_centre_x.append(x_o)
+                tracker.list_centre_y.append(y_o)
 
             if len(tracker.list_centre_x) > 2:
                 # make prediction for trajectory
@@ -177,26 +193,27 @@ def track_trajectory(input_file: str, type_of_model: str, camshift: bool, write:
                 cv2.circle(frame, (predicted[0], predicted[1]), 10, (255, 0, 255), 3)
 
                 # Prediction #
-                mu2 = tracker.mu
-                P2 = tracker.P
-                res2 = []
+                mu_2 = tracker.mu
+                P_2 = tracker.P
+                res_2 = []
 
+                # predict 2*FPS future ball's locations
                 for _ in range(FPS * 2):
-                    mu2, P2 = kf.kal(mu2, P2, tracker.B, tracker.u, z=None)
-                    res2 += [(mu2, P2)]
+                    mu_2, P_2 = kf.kal(mu_2, P_2, tracker.B, tracker.u, z=None)
+                    res_2 += [(mu_2, P_2)]
 
-                xe = [mu[0] for mu, _ in tracker.res]
-                xu = [2 * np.sqrt(P[0, 0]) for _, P in tracker.res]
-                ye = [mu[1] for mu, _ in tracker.res]
-                yu = [2 * np.sqrt(P[1, 1]) for _, P in tracker.res]
+                x_esti = [mu[0] for mu, _ in tracker.res]
+                x_u = [2 * np.sqrt(P[0, 0]) for _, P in tracker.res]
+                y_esti = [mu[1] for mu, _ in tracker.res]
+                y_u = [2 * np.sqrt(P[1, 1]) for _, P in tracker.res]
 
-                xp = [mu2[0] for mu2, _ in res2]  # first res2 is not used
-                yp = [mu2[1] for mu2, _ in res2]
+                x_pred = [mu_2[0] for mu_2, _ in res_2]  # first res_2 is not used
+                y_pred = [mu_2[1] for mu_2, _ in res_2]
 
-                xpu = [np.sqrt(P[0, 0]) for _, P in res2]
-                ypu = [np.sqrt(P[1, 1]) for _, P in res2]
+                x_pred_u = [np.sqrt(P[0, 0]) for _, P in res_2]
+                y_pred_u = [np.sqrt(P[1, 1]) for _, P in res_2]
 
-                # ball trace
+                # draw ball trace
                 for n in range(len(tracker.list_centre_x)):  # centre of prediction
                     cv2.circle(frame,
                                (int(tracker.list_centre_x[n]), int(tracker.list_centre_y[n])),
@@ -204,20 +221,20 @@ def track_trajectory(input_file: str, type_of_model: str, camshift: bool, write:
                                (0, 255, 0),
                                -1)
 
-                # predict location
+                # draw predicted locations (with dimension proportional to the uncertainty of the prediction)
                 for n in [-1]:
-                    uncertainty = (xu[n] + yu[n]) / 2
+                    uncertainty = (x_u[n] + y_u[n]) / 2
                     cv2.circle(frame,
-                               (int(xe[n]), int(ye[n])),
+                               (int(x_esti[n]), int(y_esti[n])),
                                int(uncertainty),
                                (255, 255, 0),
                                3)
 
-                for n in range(len(xp)):  # x, y prediction
-                    uncertaintyP = (xpu[n] + ypu[n]) / 2
+                for n in range(len(x_pred)):  # x, y prediction
+                    uncertainty_pred = (x_pred_u[n] + y_pred_u[n]) / 2
                     cv2.circle(frame,
-                               (int(xp[n]), int(yp[n])),
-                               int(uncertaintyP),
+                               (int(x_pred[n]), int(y_pred[n])),
+                               int(uncertainty_pred),
                                (0, 0, 255))
 
             if len(tracker.list_centre_y) > 3:

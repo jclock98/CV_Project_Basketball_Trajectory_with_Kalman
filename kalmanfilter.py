@@ -26,7 +26,7 @@ class KalmanFilter:
         return (x, y), statePre.T[0], statePost.T[0]
 
     def kal(self, x_k_minus_1, P, B, u, z):
-        """ This function update the prediction (?),
+        """ This function correct the prediction with the measured values
             B = control matrix
             P = errorCov
         """
